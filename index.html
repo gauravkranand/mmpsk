@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#134e4a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mahamaya Pashu Seva Kendra, Gaway - Medical Billing & Inventory System (GST 2.0)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="text-gray-800 select-none sm:select-auto">
+
+    <!-- Hidden Datalists for Auto-Complete -->
+    <datalist id="dl-medicines"></datalist>
+    <datalist id="dl-customers"></datalist>
+    <datalist id="dl-suppliers"></datalist>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed bottom-4 right-3 left-3 sm:left-auto sm:right-4 z-[200] flex flex-col gap-2 sm:max-w-sm pointer-events-none"></div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="fixed inset-0 bg-sidebar flex items-center justify-center z-[100] p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-7 modal-enter border border-teal-100 my-auto">
+            <div class="text-center mb-4 sm:mb-5">
+                <div class="bg-white rounded-xl p-2 border border-gray-100 shadow-sm mb-3 flex items-center justify-center">
+                    <img id="login-logo-img" src="assets/logo_en.png" alt="Mahamaya Pashu Seva Kendra Logo" class="max-h-20 sm:max-h-24 w-auto object-contain">
+                </div>
+                <div class="inline-flex rounded-lg border border-teal-200 bg-teal-50/60 p-0.5 mb-2">
+                    <button type="button" onclick="app.setLogoLang('en')" id="btn-login-lang-en" class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-primary text-white transition">English Logo</button>
+                    <button type="button" onclick="app.setLogoLang('hi')" id="btn-login-lang-hi" class="px-2.5 py-1 text-[11px] font-bold rounded-md text-teal-800 hover:bg-teal-100 transition">हिन्दी Logo</button>
+                </div>
+                <h1 class="text-lg sm:text-xl font-extrabold text-gray-800">Mahamaya Pashu Seva Kendra</h1>
+                <p class="text-[11px] sm:text-xs font-semibold text-teal-600 uppercase tracking-widest mt-0.5">Gaway • Veterinary & Medical Retail POS (GST 2.0)</p>
+            </div>
+            
+            <form id="login-form" class="space-y-3.5 sm:space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" id="login-username" value="admin" class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="admin or salesman" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" id="login-password" value="123" class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="123" required>
+                    </div>
+                </div>
+                
+                <div id="login-error" class="hidden bg-red-50 text-red-600 text-xs p-2.5 rounded-lg border border-red-100 flex items-center font-medium">
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i> Invalid credentials. Use admin/123 or salesman/123.
+                </div>
+
+                <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-2.5 rounded-lg shadow-md transition duration-200 text-sm">
+                    <i class="fa-solid fa-right-to-bracket mr-1.5"></i> Sign In to Billing Counter
+                </button>
+            </form>
+            
+            <div class="mt-4 sm:mt-5 border-t border-gray-100 pt-3 flex flex-wrap justify-between items-center gap-2 text-xs text-gray-500">
+                <div><strong class="text-gray-700">Admin:</strong> admin / 123</div>
+                <div><strong class="text-gray-700">Salesman:</strong> salesman / 123</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Layout -->
+    <div id="app-layout" class="hidden h-full flex overflow-hidden relative">
+        <!-- Desktop Left-Edge Auto-Show Sensor Strip -->
+        <div id="sidebar-hover-trigger" class="hidden md:block no-print" onmouseenter="app.sidebar.openOnHover()" title="Move cursor to left edge to open Navigation"></div>
+
+        <!-- Backdrop Overlay (Auto-hides sidebar when clicking/tapping outside on Mobile & Desktop) -->
+        <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-30 transition-opacity no-print" onclick="app.sidebar.close()"></div>
+
+        <!-- Auto-Hide Sidebar Drawer (Hidden at rest on BOTH Desktop & Mobile; opens on Navigation trigger/hover) -->
+        <aside id="app-sidebar" onmouseenter="app.sidebar.cancelAutoHide()" onmouseleave="app.sidebar.scheduleAutoHide()" class="fixed inset-y-0 left-0 w-64 max-w-[82vw] bg-sidebar text-slate-300 flex flex-col h-full z-40 shrink-0 shadow-2xl no-print">
+            <div class="p-3 border-b border-teal-900 bg-sidebar-active flex flex-col items-center relative">
+                <div class="flex items-center justify-between w-full mb-2 gap-2">
+                    <div class="bg-white rounded-lg p-1.5 flex-1 flex items-center justify-center shadow-sm">
+                        <img id="sidebar-logo-img" src="assets/logo_en.png" alt="MMPSK Logo" class="max-h-11 w-auto object-contain">
+                    </div>
+                    <button type="button" onclick="app.sidebar.close()" class="w-8 h-8 rounded-lg bg-teal-900/80 hover:bg-teal-800 text-teal-100 flex items-center justify-center border border-teal-700 transition shrink-0" title="Hide Navigation Sidebar (Esc)">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between w-full px-1">
+                    <div>
+                        <span class="text-xs font-extrabold text-white tracking-wide block leading-tight">PASHU SEVA KENDRA</span>
+                        <span class="text-[10px] text-teal-300 uppercase tracking-widest">Gaway • Since 1966</span>
+                    </div>
+                    <button type="button" onclick="app.toggleLogoLang()" class="text-[10px] bg-teal-800 hover:bg-teal-700 text-teal-100 px-2 py-0.5 rounded border border-teal-600 font-semibold" title="Switch English / Hindi Logo">
+                        <span id="sidebar-lang-badge">EN/हिं</span>
+                    </button>
+                </div>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-3">
+                <ul class="space-y-1 px-3" id="sidebar-menu">
+                    <li data-role="admin"><a href="#dashboard" id="nav-dashboard" onclick="app.sidebar.onNavClick('dashboard')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-chart-pie w-6"></i> Dashboard</a></li>
+                    
+                    <li class="mt-3 mb-1 px-3 text-[11px] font-bold text-teal-400 uppercase tracking-wider" data-role="admin">Masters & Inventory</li>
+                    <li data-role="admin"><a href="#parties" id="nav-parties" onclick="app.sidebar.onNavClick('parties')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-users w-6"></i> Parties & Ledgers</a></li>
+                    <li data-role="admin"><a href="#items" id="nav-items" onclick="app.sidebar.onNavClick('items')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-capsules w-6"></i> Medicines & Batches</a></li>
+                    
+                    <li class="mt-3 mb-1 px-3 text-[11px] font-bold text-teal-400 uppercase tracking-wider" data-role="all">POS & Transactions</li>
+                    <li data-role="all"><a href="#sales" id="nav-sales" onclick="app.sidebar.onNavClick('sales')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-file-invoice-dollar w-6"></i> Sale / POS Bill</a></li>
+                    <li data-role="admin"><a href="#purchases" id="nav-purchases" onclick="app.sidebar.onNavClick('purchases')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-cart-shopping w-6"></i> Purchase / Stock In</a></li>
+                    <li data-role="admin"><a href="#credit-notes" id="nav-credit-notes" onclick="app.sidebar.onNavClick('credit-notes')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-file-invoice w-6"></i> Return / Credit Note</a></li>
+                    
+                    <li class="mt-3 mb-1 px-3 text-[11px] font-bold text-teal-400 uppercase tracking-wider" data-role="admin">Reports & Data Backup</li>
+                    <li data-role="admin"><a href="#reports" id="nav-reports" onclick="app.sidebar.onNavClick('reports')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-chart-line w-6"></i> Reports & Edit Bills</a></li>
+                    <li data-role="admin"><a href="#settings" id="nav-settings" onclick="app.sidebar.onNavClick('settings')" class="nav-item flex items-center px-3 py-2.5 rounded-md hover:bg-sidebar-hover transition-colors font-medium text-sm"><i class="fa-solid fa-database w-6"></i> Settings & Backup</a></li>
+                </ul>
+            </nav>
+            <div class="p-3 border-t border-teal-900 bg-sidebar-active/70 text-[11px] text-teal-200 flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> <span id="sync-status-label">Local + Auto-Backup</span></span>
+                <button type="button" onclick="app.sidebar.close(); app.modals.open('modal-backup-center');" class="text-amber-300 hover:text-amber-200 font-bold underline">Backup</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area (100% Width at Rest on Both Desktop & Mobile) -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0 bg-gray-50">
+            <!-- Header -->
+            <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-2.5 sm:px-4 md:px-6 shrink-0 z-10 shadow-sm gap-2">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <!-- Navigation Drawer Trigger (Opens on Click/Tap on Mobile & Desktop, and Hover on Desktop) -->
+                    <button type="button" id="btn-sidebar-toggle" onclick="app.sidebar.toggle()" onmouseenter="app.sidebar.openOnHover()" class="bg-sidebar hover:bg-sidebar-hover text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-primary" title="Open Navigation Menu">
+                        <i class="fa-solid fa-bars text-sm"></i>
+                        <span class="hidden sm:inline">Menu</span>
+                    </button>
+                    <h1 id="topbar-title" class="text-sm sm:text-base md:text-xl font-bold text-gray-800 truncate">Dashboard</h1>
+                    <span class="hidden xl:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200 shrink-0">
+                        GST 2.0 MRP Inclusive
+                    </span>
+                </div>
+                <div class="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
+                    <button type="button" onclick="app.quickNewSale()" class="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center" title="New Retail POS Sale">
+                        <i class="fa-solid fa-plus sm:mr-1"></i> <span class="hidden sm:inline">New Sale</span>
+                    </button>
+                    <button type="button" onclick="app.modals.open('modal-backup-center')" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center shadow-sm" title="Data Backup & Restore Center">
+                        <i class="fa-solid fa-cloud-arrow-down sm:mr-1.5 text-amber-600"></i> <span class="hidden md:inline">Data Backup</span><span class="md:hidden ml-1">Backup</span>
+                    </button>
+                    <div class="text-right hidden lg:block">
+                        <p class="text-xs font-bold text-gray-700 leading-tight" id="user-display-name">Dr. Mahamaya Admin</p>
+                        <p class="text-[10px] text-teal-600 font-semibold uppercase" id="user-display-role">Administrator</p>
+                    </div>
+                    <button type="button" onclick="app.auth.logout()" class="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 sm:px-2.5 py-1.5 rounded-md text-xs font-bold transition flex items-center border border-transparent hover:border-red-200" title="Logout">
+                        <i class="fa-solid fa-arrow-right-from-bracket sm:mr-1"></i> <span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dynamic Content Container -->
+            <div id="app-content" class="flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 md:p-5 w-full max-w-full"></div>
+        </main>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TEMPLATES FOR VIEWS                                                   -->
+    <!-- ===================================================================== -->
+
+    <!-- 1. DASHBOARD TEMPLATE -->
+    <template id="tpl-dashboard">
+        <div class="space-y-4 sm:space-y-5 pb-4">
+            <!-- Top KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Sales Revenue</p>
+                        <div class="text-xl sm:text-2xl font-extrabold text-gray-800 mt-1" id="dash-total-sales">₹ 0.00</div>
+                        <p class="text-[11px] text-teal-600 font-medium mt-0.5" id="dash-sales-count">0 Invoices</p>
+                    </div>
+                    <div class="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center text-primary text-lg border border-teal-100 shrink-0"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                </div>
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Purchases</p>
+                        <div class="text-xl sm:text-2xl font-extrabold text-gray-800 mt-1" id="dash-total-purchases">₹ 0.00</div>
+                        <p class="text-[11px] text-orange-600 font-medium mt-0.5" id="dash-purchases-count">0 Bills</p>
+                    </div>
+                    <div class="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 text-lg border border-orange-100 shrink-0"><i class="fa-solid fa-cart-arrow-down"></i></div>
+                </div>
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">Customer Dues (Udhar)</p>
+                        <div class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-1" id="dash-receivables">₹ 0.00</div>
+                        <p class="text-[11px] text-gray-500 font-medium mt-0.5">Credit Farmers Ledger</p>
+                    </div>
+                    <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 text-lg border border-amber-100 shrink-0"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                </div>
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between cursor-pointer hover:border-red-300 transition" onclick="window.location.hash='reports'; setTimeout(()=>app.reports.switchTab('expiry'), 60);">
+                    <div>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">Near-Expiry / Low Stock</p>
+                        <div class="text-xl sm:text-2xl font-extrabold text-red-600 mt-1" id="dash-expiry-count">0 Batches</div>
+                        <p class="text-[11px] text-red-500 font-semibold mt-0.5">FEFO Alert Register →</p>
+                    </div>
+                    <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center text-red-600 text-lg border border-red-100 shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                </div>
+            </div>
+
+            <!-- Middle Quick Actions & Brand Banner -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <img id="dash-logo-preview" src="assets/logo_en.png" alt="Store Logo" class="h-12 sm:h-14 w-auto object-contain border border-gray-100 rounded-lg p-1 shrink-0">
+                    <div class="min-w-0">
+                        <h2 class="text-sm sm:text-base font-extrabold text-gray-800 leading-snug" id="dash-store-title">MAHAMAYA PASHU SEVA KENDRA, GAWAY</h2>
+                        <p class="text-[11px] sm:text-xs text-gray-500 break-words" id="dash-store-subtitle">D.L. No: 20B-BR/GWY/1966, 21B-BR/GWY/1966 • GSTIN: 10AABCM1966P1Z5</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full md:w-auto">
+                    <button type="button" onclick="window.location.hash='sales'" class="bg-primary hover:bg-primary-hover text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow-sm transition text-center"><i class="fa-solid fa-cash-register mr-1"></i> POS Billing</button>
+                    <button type="button" onclick="app.items.openAddModal()" class="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-3 py-2 rounded-lg text-xs font-bold transition text-center"><i class="fa-solid fa-capsules mr-1"></i> + Medicine</button>
+                    <button type="button" onclick="app.parties.openAddModal()" class="bg-slate-100 hover:bg-slate-200 text-gray-700 px-3 py-2 rounded-lg text-xs font-bold transition text-center"><i class="fa-solid fa-user-plus mr-1"></i> + Farmer/Party</button>
+                    <button type="button" onclick="app.modals.open('modal-backup-center')" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition text-center"><i class="fa-solid fa-download mr-1"></i> Backup Data</button>
+                </div>
+            </div>
+
+            <!-- Two-Column Recent Invoices & Near-Expiry FEFO Watchlist -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+                    <div class="px-3.5 sm:px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-xs sm:text-sm text-gray-800"><i class="fa-solid fa-receipt text-primary mr-1.5"></i> Recent Retail Invoices</h3>
+                        <a href="#reports" class="text-xs font-bold text-primary hover:underline">View All / Edit →</a>
+                    </div>
+                    <div class="table-scroll-container">
+                        <table class="w-full min-w-[520px] text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase">
+                                    <th class="p-2.5">Invoice</th>
+                                    <th class="p-2.5">Date</th>
+                                    <th class="p-2.5">Farmer / Patient</th>
+                                    <th class="p-2.5 text-right">Total (MRP)</th>
+                                    <th class="p-2.5 text-right">Due</th>
+                                    <th class="p-2.5 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-recent-sales-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+                    <div class="px-3.5 sm:px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-red-50/50">
+                        <h3 class="font-bold text-xs sm:text-sm text-red-700"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i> FEFO Batch & Expiry Watchlist (30/60/90d)</h3>
+                        <a href="#items" class="text-xs font-bold text-red-600 hover:underline">Manage Stock →</a>
+                    </div>
+                    <div class="table-scroll-container">
+                        <table class="w-full min-w-[500px] text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase">
+                                    <th class="p-2.5">Medicine</th>
+                                    <th class="p-2.5">Batch No</th>
+                                    <th class="p-2.5">Expiry</th>
+                                    <th class="p-2.5 text-right">Stock</th>
+                                    <th class="p-2.5 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-expiry-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 2. SALES POS TEMPLATE (TAX-INCLUSIVE MRP, FEFO AUTO-SUGGEST, 6 VISIBLE ROWS, DOCTOR & EDIT MODE) -->
+    <template id="tpl-sales">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 min-h-full lg:h-full flex flex-col min-w-0">
+            <!-- Top POS Bar -->
+            <div class="px-3 sm:px-4 py-2.5 border-b border-gray-200 flex flex-wrap justify-between items-center bg-slate-50 rounded-t-xl shrink-0 gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-extrabold text-sm sm:text-base text-gray-800"><i class="fa-solid fa-file-invoice-dollar text-primary mr-1.5"></i> RETAIL MEDICAL INVOICE (POS)</span>
+                    <span id="sales-edit-badge" class="hidden bg-amber-100 text-amber-800 border border-amber-300 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> EDITING: <span id="sales-edit-inv-label"></span>
+                        <button type="button" onclick="app.pos.cancelEdit('sales')" class="ml-2 text-red-600 hover:underline">Cancel Edit</button>
+                    </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs w-full sm:w-auto justify-between sm:justify-end">
+                    <div class="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-2 py-1">
+                        <span class="text-gray-500 font-semibold">Supply:</span>
+                        <select id="sales-supply-type" onchange="app.tableManager.calcTotal('sales')" class="font-bold text-teal-700 bg-transparent outline-none cursor-pointer">
+                            <option value="INTRA">Intra-State (CGST + SGST)</option>
+                            <option value="INTER">Inter-State (IGST)</option>
+                        </select>
+                    </div>
+                    <div class="font-medium text-gray-500 flex items-center gap-1">Inv No: <input type="text" id="sales-invoice-no" class="w-28 font-bold text-gray-800 bg-white border border-gray-300 rounded px-2 py-0.5 text-xs" readonly></div>
+                </div>
+            </div>
+
+            <!-- Customer, Doctor & Prescription Info Bar -->
+            <div class="p-3 bg-white border-b border-gray-200 shrink-0">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 items-end">
+                    <div class="sm:col-span-2 lg:col-span-2">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Farmer / Patient Name <span class="text-red-500">*</span></label>
+                        <div class="flex">
+                            <input type="text" id="sales-party-name" list="dl-customers" oninput="app.pos.onPartyInput('sales')" class="w-full border border-gray-300 rounded-l-md px-2.5 py-1.5 text-xs focus:border-primary outline-none font-semibold" placeholder="Type or select Farmer / Walk-in Customer">
+                            <button type="button" onclick="app.parties.openAddModal('Customer')" class="bg-teal-50 border border-gray-300 border-l-0 rounded-r-md px-3 text-primary hover:bg-teal-100 transition" title="Add New Farmer/Customer"><i class="fa-solid fa-user-plus text-xs"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Phone / Mobile</label>
+                        <input type="text" id="sales-party-phone" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs focus:border-primary outline-none" placeholder="Mobile No.">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Village / Address</label>
+                        <input type="text" id="sales-party-address" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs focus:border-primary outline-none" placeholder="Village Gaway">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Prescribing Doctor / Vet</label>
+                        <input type="text" id="sales-doctor-name" value="Dr. S.K. Verma (B.V.Sc)" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs focus:border-primary outline-none font-medium" placeholder="Doctor Name">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Invoice Date & GSTIN</label>
+                        <div class="flex gap-1">
+                            <input type="date" id="sales-date" class="w-3/5 border border-gray-300 rounded-md px-1.5 py-1.5 text-xs outline-none current-date-init font-medium">
+                            <input type="text" id="sales-party-gstin" class="w-2/5 border border-gray-300 rounded-md px-1.5 py-1.5 text-[11px] outline-none uppercase" placeholder="GSTIN">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Swipe Hint Bar -->
+            <div class="lg:hidden px-3 py-1.5 bg-teal-50/70 border-b border-teal-100 text-[11px] text-teal-800 flex items-center justify-between">
+                <span><i class="fa-solid fa-arrows-left-right mr-1 text-primary"></i> Swipe table horizontally to edit all columns</span>
+                <button type="button" onclick="app.tableManager.addRow('sales')" class="font-extrabold text-primary underline">+ Add Row</button>
+            </div>
+
+            <!-- POS Itemized Table -->
+            <div class="flex-1 table-scroll-container overflow-y-auto min-h-[250px]">
+                <table class="w-full billing-table" id="table-sales">
+                    <thead class="sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th rowspan="2" class="w-8">#</th>
+                            <th rowspan="2" class="w-60 text-left pl-2">MEDICINE / ITEM (FEFO AUTO-FILL)</th>
+                            <th rowspan="2" class="w-20">HSN / SCH</th>
+                            <th rowspan="2" class="w-32">BATCH NO. (FEFO)</th>
+                            <th rowspan="2" class="w-24">MFG</th>
+                            <th rowspan="2" class="w-24">EXP DATE</th>
+                            <th rowspan="2" class="w-16">QTY</th>
+                            <th rowspan="2" class="w-16">UNIT</th>
+                            <th rowspan="2" class="w-24">MRP (₹)<span class="block text-[9px] text-teal-700 font-bold">Incl. GST</span></th>
+                            <th colspan="2">DISCOUNT</th>
+                            <th rowspan="2" class="w-24">TAXABLE<span class="block text-[9px] text-gray-400 font-normal">Base Val</span></th>
+                            <th colspan="2">GST (2.0)</th>
+                            <th rowspan="2" class="w-28">NET AMT<span class="block text-[9px] text-teal-700 font-bold">Incl. Tax</span></th>
+                            <th rowspan="2" class="w-8"><button type="button" class="text-primary hover:text-primary-hover p-1" onclick="app.tableManager.addRow('sales')" title="Add Row"><i class="fa-solid fa-circle-plus text-sm"></i></button></th>
+                        </tr>
+                        <tr>
+                            <th class="w-12">%</th>
+                            <th class="w-16">AMT</th>
+                            <th class="w-16">%</th>
+                            <th class="w-20">TAX ₹</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-sales"></tbody>
+                </table>
+            </div>
+
+            <!-- Bottom POS Summary & Checkout Bar -->
+            <div class="p-3 border-t border-gray-200 bg-slate-50 rounded-b-xl shrink-0">
+                <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5">
+                    <!-- Left Controls & Counters -->
+                    <div class="space-y-2 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="app.tableManager.addRow('sales')" class="border border-teal-300 text-primary px-3 py-1.5 rounded-md text-xs font-bold hover:bg-teal-50 bg-white shadow-sm transition"><i class="fa-solid fa-plus mr-1"></i> ADD ROW</button>
+                            <button type="button" onclick="app.items.openAddModal()" class="border border-gray-300 text-gray-700 px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-gray-100 bg-white transition"><i class="fa-solid fa-capsules mr-1 text-teal-600"></i> + New Medicine</button>
+                            <div class="flex items-center gap-2.5 bg-teal-900 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm">
+                                <span>Items: <span id="sales-counter-items" class="text-teal-300">0</span></span>
+                                <span class="text-teal-600">|</span>
+                                <span>Qty: <span id="sales-counter-qty" class="text-teal-300">0</span></span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-md text-xs w-full sm:w-auto">
+                                <span class="text-gray-500">Taxable: <b id="sales-subtotal-taxable" class="text-gray-800">₹0.00</b></span>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-gray-500" id="sales-tax-split-label">CGST: <b id="sales-cgst-amt">₹0.00</b> + SGST: <b id="sales-sgst-amt">₹0.00</b></span>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-teal-700 font-bold">GST: <b id="sales-total-gst">₹0.00</b></span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 text-xs">
+                            <div class="flex items-center gap-1.5">
+                                <label class="font-bold text-gray-600 uppercase text-[10px] shrink-0">Payment Mode:</label>
+                                <select id="sales-payment-mode" class="flex-1 sm:flex-initial border border-gray-300 rounded px-2.5 py-1.5 text-xs font-semibold bg-white outline-none focus:border-primary">
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI / QR Code">UPI / QR Code</option>
+                                    <option value="Credit / Udhar">Credit / Udhar (Party Ledger)</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+                            <input type="text" id="sales-notes" class="flex-1 border border-gray-300 rounded px-2.5 py-1.5 text-xs bg-white outline-none" placeholder="Prescription / Dosage notes (optional)...">
+                        </div>
+                    </div>
+
+                    <!-- Right Financial Checkout Box -->
+                    <div class="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-3 border border-gray-200 rounded-xl shadow-sm">
+                        <div class="space-y-1.5 text-xs flex-1 sm:min-w-[220px]">
+                            <div class="flex justify-between items-center">
+                                <label class="flex items-center text-gray-600 font-medium cursor-pointer">
+                                    <input type="checkbox" id="sales-roundoff-chk" onchange="app.tableManager.calcTotal('sales')" class="mr-1.5 rounded text-primary h-3.5 w-3.5" checked> Round Off
+                                </label>
+                                <input type="text" id="sales-roundoff" class="w-24 border border-gray-200 rounded px-2 py-0.5 text-right text-xs bg-gray-50 font-mono" readonly value="0.00">
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-extrabold text-gray-800 text-sm">Grand Total (MRP)</span>
+                                <input type="text" id="sales-total" class="w-28 border border-teal-200 rounded px-2 py-1 text-right font-extrabold text-base bg-teal-50 text-teal-900" readonly value="0.00">
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-700">Received Amt (₹)</span>
+                                <input type="number" step="0.01" id="sales-received" oninput="app.pos.updateBalanceDue('sales')" class="w-28 border-2 border-primary rounded px-2 py-0.5 text-right font-bold text-sm bg-white text-gray-900" placeholder="0.00">
+                            </div>
+                            <div class="flex justify-between items-center pt-1 border-t border-gray-100 font-bold">
+                                <span class="text-red-600">Balance Due (Udhar)</span>
+                                <span id="sales-balance" class="text-sm text-red-600 font-extrabold">₹ 0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="flex sm:flex-col gap-2 w-full sm:w-auto">
+                            <button type="button" onclick="app.pos.saveTransaction('sales', true)" class="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 bg-primary text-white rounded-lg font-extrabold hover:bg-primary-hover shadow-md transition text-xs flex items-center justify-center whitespace-nowrap">
+                                <i class="fa-solid fa-print mr-1.5"></i> Save & Print
+                            </button>
+                            <button type="button" onclick="app.pos.saveTransaction('sales', false)" class="flex-1 sm:flex-initial px-4 sm:px-5 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition text-xs flex items-center justify-center whitespace-nowrap">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Save Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 3. PURCHASES / STOCK IN TEMPLATE -->
+    <template id="tpl-purchases">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 min-h-full lg:h-full flex flex-col min-w-0">
+            <div class="px-3 sm:px-4 py-2.5 border-b border-gray-200 flex flex-wrap justify-between items-center bg-slate-50 rounded-t-xl shrink-0 gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-extrabold text-sm sm:text-base text-gray-800"><i class="fa-solid fa-cart-shopping text-primary mr-1.5"></i> Purchase / Batch Stock In (Supplier Bill)</span>
+                    <span id="purchases-edit-badge" class="hidden bg-amber-100 text-amber-800 border border-amber-300 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> EDITING: <span id="purchases-edit-inv-label"></span>
+                        <button type="button" onclick="app.pos.cancelEdit('purchases')" class="ml-2 text-red-600 hover:underline">Cancel Edit</button>
+                    </span>
+                </div>
+                <div class="text-xs font-medium text-gray-500">Entry No: <input type="text" id="purchases-invoice-no" class="w-28 font-bold text-gray-800 bg-white border border-gray-300 rounded px-2 py-0.5 text-xs" readonly></div>
+            </div>
+
+            <div class="p-3 bg-white border-b border-gray-200 shrink-0">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3 items-end">
+                    <div class="sm:col-span-2 lg:col-span-2">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Supplier / Pharma Distributor <span class="text-red-500">*</span></label>
+                        <div class="flex">
+                            <input type="text" id="purchases-party-name" list="dl-suppliers" oninput="app.pos.onPartyInput('purchases')" class="w-full border border-gray-300 rounded-l-md px-2.5 py-1.5 text-xs focus:border-primary outline-none font-semibold" placeholder="Search or Enter Distributor Name">
+                            <button type="button" onclick="app.parties.openAddModal('Supplier')" class="bg-gray-100 border border-gray-300 border-l-0 rounded-r-md px-3 text-primary hover:bg-gray-200 transition"><i class="fa-solid fa-plus text-xs"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Distributor Phone</label>
+                        <input type="text" id="purchases-party-phone" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs outline-none" placeholder="Contact No.">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Supplier Invoice No.</label>
+                        <input type="text" id="purchases-supplier-bill" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs outline-none font-mono" placeholder="e.g. VETS/26-27/892">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Purchase Date</label>
+                        <input type="date" id="purchases-date" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs outline-none current-date-init font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:hidden px-3 py-1.5 bg-orange-50/70 border-b border-orange-100 text-[11px] text-orange-800 flex items-center justify-between">
+                <span><i class="fa-solid fa-arrows-left-right mr-1"></i> Swipe table horizontally to edit all columns</span>
+                <button type="button" onclick="app.tableManager.addRow('purchases')" class="font-extrabold text-primary underline">+ Add Row</button>
+            </div>
+
+            <div class="flex-1 table-scroll-container overflow-y-auto min-h-[250px]">
+                <table class="w-full billing-table" id="table-purchases">
+                    <thead class="sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th rowspan="2" class="w-8">#</th>
+                            <th rowspan="2" class="w-60 text-left pl-2">MEDICINE / ITEM NAME</th>
+                            <th rowspan="2" class="w-20">HSN</th>
+                            <th rowspan="2" class="w-32">BATCH NO.</th>
+                            <th rowspan="2" class="w-24">MFG DATE</th>
+                            <th rowspan="2" class="w-24">EXP DATE</th>
+                            <th rowspan="2" class="w-16">QTY</th>
+                            <th rowspan="2" class="w-16">UNIT</th>
+                            <th rowspan="2" class="w-24">PTR / MRP (₹)<span class="block text-[9px] text-orange-700 font-bold">Incl. Tax</span></th>
+                            <th colspan="2">DISCOUNT</th>
+                            <th rowspan="2" class="w-24">TAXABLE</th>
+                            <th colspan="2">GST (2.0)</th>
+                            <th rowspan="2" class="w-28">AMOUNT</th>
+                            <th rowspan="2" class="w-8"><button type="button" class="text-primary hover:text-primary-hover p-1" onclick="app.tableManager.addRow('purchases')"><i class="fa-solid fa-circle-plus text-sm"></i></button></th>
+                        </tr>
+                        <tr>
+                            <th class="w-12">%</th>
+                            <th class="w-16">AMT</th>
+                            <th class="w-16">%</th>
+                            <th class="w-20">TAX ₹</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-purchases"></tbody>
+                </table>
+            </div>
+
+            <div class="p-3 border-t border-gray-200 bg-slate-50 rounded-b-xl shrink-0">
+                <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5">
+                    <div class="space-y-2 flex-1">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button type="button" onclick="app.tableManager.addRow('purchases')" class="border border-teal-300 text-primary px-3 py-1.5 rounded-md text-xs font-bold hover:bg-teal-50 bg-white shadow-sm transition"><i class="fa-solid fa-plus mr-1"></i> ADD ROW</button>
+                            <div class="flex items-center gap-2.5 bg-slate-800 text-white px-3 py-1.5 rounded-md text-xs font-bold">
+                                <span>Items: <span id="purchases-counter-items" class="text-amber-300">0</span></span>
+                                <span>|</span>
+                                <span>Qty: <span id="purchases-counter-qty" class="text-amber-300">0</span></span>
+                            </div>
+                            <div class="text-xs text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-md">
+                                Taxable: <b id="purchases-subtotal-taxable">₹0.00</b> | Total GST: <b id="purchases-total-gst">₹0.00</b>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5 text-xs">
+                            <label class="font-bold text-gray-600 uppercase text-[10px]">Payment Mode:</label>
+                            <select id="purchases-payment-mode" class="border border-gray-300 rounded px-2.5 py-1.5 text-xs font-semibold bg-white outline-none">
+                                <option value="Paid (Cash/Bank)">Paid (Cash/Bank)</option>
+                                <option value="Credit (To Pay)">Credit (Supplier Ledger)</option>
+                                <option value="UPI / NEFT">UPI / NEFT</option>
+                            </select>
+                            <span class="text-gray-400 text-[11px]">*Saving purchase automatically updates Batch Inventory & Expiry Date.</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-3 border border-gray-200 rounded-xl shadow-sm">
+                        <div class="space-y-1.5 text-xs flex-1 sm:min-w-[210px]">
+                            <div class="flex justify-between items-center">
+                                <label class="flex items-center text-gray-600 font-medium cursor-pointer">
+                                    <input type="checkbox" id="purchases-roundoff-chk" onchange="app.tableManager.calcTotal('purchases')" class="mr-1.5 rounded text-primary h-3.5 w-3.5" checked> Round Off
+                                </label>
+                                <input type="text" id="purchases-roundoff" class="w-20 border border-gray-200 rounded px-2 py-0.5 text-right text-xs bg-gray-50" readonly value="0.00">
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-extrabold text-gray-800 text-sm">Bill Total (₹)</span>
+                                <input type="text" id="purchases-total" class="w-28 border border-orange-200 rounded px-2 py-1 text-right font-extrabold text-base bg-orange-50 text-orange-800" readonly value="0.00">
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-700">Paid Amount (₹)</span>
+                                <input type="number" step="0.01" id="purchases-received" oninput="app.pos.updateBalanceDue('purchases')" class="w-28 border-2 border-orange-500 rounded px-2 py-0.5 text-right font-bold text-sm bg-white" placeholder="0.00">
+                            </div>
+                            <div class="flex justify-between items-center pt-1 border-t border-gray-100 font-bold">
+                                <span class="text-red-600">Payable Due</span>
+                                <span id="purchases-balance" class="text-sm text-red-600 font-extrabold">₹ 0.00</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="app.pos.saveTransaction('purchases', false)" class="px-5 py-3 bg-primary text-white rounded-lg font-extrabold hover:bg-primary-hover shadow-md transition text-xs whitespace-nowrap flex items-center justify-center">
+                            <i class="fa-solid fa-boxes-stacked mr-1.5"></i> Save Purchase & Update Stock
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 4. CREDIT NOTES / SALES RETURN TEMPLATE -->
+    <template id="tpl-credit-notes">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 min-h-full lg:h-full flex flex-col min-w-0">
+            <div class="px-3 sm:px-4 py-2.5 border-b border-gray-200 flex flex-wrap justify-between items-center bg-slate-50 rounded-t-xl shrink-0 gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-extrabold text-sm sm:text-base text-gray-800"><i class="fa-solid fa-file-invoice text-primary mr-1.5"></i> Sales Return / Credit Note</span>
+                    <span id="credit-notes-edit-badge" class="hidden bg-amber-100 text-amber-800 border border-amber-300 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                        EDITING: <span id="credit-notes-edit-inv-label"></span>
+                        <button type="button" onclick="app.pos.cancelEdit('credit-notes')" class="ml-2 text-red-600 hover:underline">Cancel</button>
+                    </span>
+                </div>
+                <div class="text-xs font-medium text-gray-500">Credit Note No: <input type="text" id="credit-notes-invoice-no" class="w-28 font-bold text-gray-800 bg-white border border-gray-300 rounded px-2 py-0.5 text-xs" readonly></div>
+            </div>
+
+            <div class="p-3 bg-white border-b border-gray-200 shrink-0">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 items-end">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Customer / Farmer <span class="text-red-500">*</span></label>
+                        <input type="text" id="credit-notes-party-name" list="dl-customers" oninput="app.pos.onPartyInput('credit-notes')" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs focus:border-primary outline-none font-semibold" placeholder="Search Customer">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Phone No.</label>
+                        <input type="text" id="credit-notes-party-phone" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs outline-none" placeholder="Phone No.">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Original Invoice No.</label>
+                        <input type="text" id="credit-notes-orig-inv" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs outline-none font-mono" placeholder="e.g. PSK-INV-101">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Return Date</label>
+                        <input type="date" id="credit-notes-date" class="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-xs outline-none current-date-init font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:hidden px-3 py-1.5 bg-red-50/70 border-b border-red-100 text-[11px] text-red-800 flex items-center justify-between">
+                <span><i class="fa-solid fa-arrows-left-right mr-1"></i> Swipe table horizontally to edit all columns</span>
+                <button type="button" onclick="app.tableManager.addRow('credit-notes')" class="font-extrabold text-primary underline">+ Add Row</button>
+            </div>
+
+            <div class="flex-1 table-scroll-container overflow-y-auto min-h-[250px]">
+                <table class="w-full billing-table" id="table-credit-notes">
+                    <thead class="sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th rowspan="2" class="w-8">#</th>
+                            <th rowspan="2" class="w-60 text-left pl-2">MEDICINE / ITEM NAME</th>
+                            <th rowspan="2" class="w-20">HSN</th>
+                            <th rowspan="2" class="w-32">BATCH NO.</th>
+                            <th rowspan="2" class="w-24">MFG DATE</th>
+                            <th rowspan="2" class="w-24">EXP DATE</th>
+                            <th rowspan="2" class="w-16">RETURN QTY</th>
+                            <th rowspan="2" class="w-16">UNIT</th>
+                            <th rowspan="2" class="w-24">MRP (Incl.)</th>
+                            <th colspan="2">DISCOUNT</th>
+                            <th rowspan="2" class="w-24">TAXABLE</th>
+                            <th colspan="2">GST (2.0)</th>
+                            <th rowspan="2" class="w-28">REFUND AMT</th>
+                            <th rowspan="2" class="w-8"><button type="button" class="text-primary hover:text-primary-hover p-1" onclick="app.tableManager.addRow('credit-notes')"><i class="fa-solid fa-circle-plus text-sm"></i></button></th>
+                        </tr>
+                        <tr>
+                            <th class="w-12">%</th>
+                            <th class="w-16">AMT</th>
+                            <th class="w-16">%</th>
+                            <th class="w-20">TAX ₹</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-credit-notes"></tbody>
+                </table>
+            </div>
+
+            <div class="p-3 border-t border-gray-200 bg-slate-50 rounded-b-xl shrink-0">
+                <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5">
+                    <div class="space-y-1.5">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button type="button" onclick="app.tableManager.addRow('credit-notes')" class="border border-teal-300 text-primary px-3 py-1.5 rounded-md text-xs font-bold hover:bg-teal-50 bg-white shadow-sm transition"><i class="fa-solid fa-plus mr-1"></i> ADD ROW</button>
+                            <span class="text-xs font-bold text-gray-700">Items: <span id="credit-notes-counter-items">0</span> | Qty: <span id="credit-notes-counter-qty">0</span></span>
+                            <span class="text-xs text-gray-500">Taxable: <b id="credit-notes-subtotal-taxable">₹0.00</b> | GST: <b id="credit-notes-total-gst">₹0.00</b></span>
+                        </div>
+                        <p class="text-[11px] text-gray-500">*Returned items are added back to the respective batch inventory and credited to the customer ledger.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-3 border border-gray-200 rounded-xl shadow-sm">
+                        <div class="space-y-1 text-xs flex-1">
+                            <div class="flex justify-between items-center gap-3">
+                                <label class="flex items-center text-gray-600"><input type="checkbox" id="credit-notes-roundoff-chk" onchange="app.tableManager.calcTotal('credit-notes')" class="mr-1" checked> Round Off</label>
+                                <input type="text" id="credit-notes-roundoff" class="w-20 border border-gray-200 rounded px-1.5 py-0.5 text-right text-xs bg-gray-50" readonly value="0.00">
+                            </div>
+                            <div class="flex justify-between items-center gap-3">
+                                <span class="font-extrabold text-gray-800 text-sm">Total Refund</span>
+                                <input type="text" id="credit-notes-total" class="w-28 border border-red-200 rounded px-2 py-1 text-right font-extrabold text-base bg-red-50 text-red-700" readonly value="0.00">
+                            </div>
+                        </div>
+                        <button type="button" onclick="app.pos.saveTransaction('credit-notes', false)" class="px-5 py-2.5 bg-primary text-white rounded-lg font-extrabold hover:bg-primary-hover shadow-md transition text-xs flex items-center justify-center">
+                            <i class="fa-solid fa-rotate-left mr-1.5"></i> Save Credit Note
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 5. REPORTS & CENTRALIZED INVOICE EDITING ENGINE TEMPLATE -->
+    <template id="tpl-reports">
+        <div class="flex flex-col md:flex-row min-h-full md:h-full w-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="w-full md:w-52 bg-[#f7fafa] border-b md:border-b-0 md:border-r border-gray-200 p-2 md:pt-3 flex md:flex-col gap-1.5 overflow-x-auto shrink-0">
+                <div class="hidden md:block px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Reports & Edit Engine</div>
+                <button type="button" onclick="app.reports.switchTab('sale')" id="rep-nav-sale" class="report-nav text-left px-3 py-2 text-xs md:text-sm rounded-lg md:rounded-none border-l-4 border-transparent font-medium whitespace-nowrap"><i class="fa-solid fa-file-invoice-dollar w-5"></i> Sale Invoices</button>
+                <button type="button" onclick="app.reports.switchTab('purchase')" id="rep-nav-purchase" class="report-nav text-left px-3 py-2 text-xs md:text-sm rounded-lg md:rounded-none border-l-4 border-transparent font-medium whitespace-nowrap"><i class="fa-solid fa-cart-shopping w-5"></i> Purchase Bills</button>
+                <button type="button" onclick="app.reports.switchTab('cn')" id="rep-nav-cn" class="report-nav text-left px-3 py-2 text-xs md:text-sm rounded-lg md:rounded-none border-l-4 border-transparent font-medium whitespace-nowrap"><i class="fa-solid fa-rotate-left w-5"></i> Credit Notes</button>
+                <button type="button" onclick="app.reports.switchTab('expiry')" id="rep-nav-expiry" class="report-nav text-left px-3 py-2 text-xs md:text-sm rounded-lg md:rounded-none border-l-4 border-transparent font-semibold text-red-600 whitespace-nowrap"><i class="fa-solid fa-triangle-exclamation w-5"></i> Expiry Stock Report</button>
+                <button type="button" onclick="app.reports.switchTab('daybook')" id="rep-nav-daybook" class="report-nav text-left px-3 py-2 text-xs md:text-sm rounded-lg md:rounded-none border-l-4 border-transparent font-medium whitespace-nowrap"><i class="fa-solid fa-book-open w-5"></i> Day Book & GST</button>
+            </div>
+
+            <div class="flex-1 bg-white p-3 sm:p-4 md:p-5 flex flex-col min-h-[420px] md:h-full overflow-hidden">
+                <!-- Sale Invoices Tab -->
+                <div id="rep-tab-sale" class="report-tab flex flex-col h-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3.5 gap-2.5">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-extrabold text-gray-800">Veterinary & Medical Sale Invoices (GST 2.0)</h2>
+                            <p class="text-xs text-gray-500">Tap <b class="text-primary">Edit</b> on any invoice to load it back into the POS editor and recalculate stock & ledgers.</p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input type="text" id="rep-sale-search" oninput="app.reports.render()" class="flex-1 sm:w-48 border border-gray-300 rounded-md px-3 py-1.5 text-xs outline-none" placeholder="Search Invoice or Farmer...">
+                            <button type="button" onclick="app.backup.exportCsv('sales')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-md text-xs font-bold flex items-center shrink-0"><i class="fa-solid fa-file-csv mr-1.5"></i> Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 table-scroll-container overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full responsive-data-table text-left border-collapse text-xs">
+                            <thead class="sticky top-0 bg-gray-100 border-b border-gray-200 text-gray-600 uppercase">
+                                <tr>
+                                    <th class="p-2.5">Date</th>
+                                    <th class="p-2.5">Invoice No.</th>
+                                    <th class="p-2.5">Farmer / Patient</th>
+                                    <th class="p-2.5">Doctor</th>
+                                    <th class="p-2.5 text-right">Taxable ₹</th>
+                                    <th class="p-2.5 text-right">GST ₹</th>
+                                    <th class="p-2.5 text-right">Grand Total ₹</th>
+                                    <th class="p-2.5 text-right">Received ₹</th>
+                                    <th class="p-2.5 text-right">Due ₹</th>
+                                    <th class="p-2.5 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-sale-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Purchase Bills Tab -->
+                <div id="rep-tab-purchase" class="report-tab hidden flex-col h-full">
+                    <div class="flex flex-wrap justify-between items-center mb-3.5 gap-2">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-extrabold text-gray-800">Purchase Bills (Stock Inward)</h2>
+                            <p class="text-xs text-gray-500">Edit or review distributor purchase bills with centralized batch stock synchronization.</p>
+                        </div>
+                        <button type="button" onclick="app.backup.exportCsv('purchases')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-md text-xs font-bold"><i class="fa-solid fa-file-csv mr-1.5"></i> Export CSV</button>
+                    </div>
+                    <div class="flex-1 table-scroll-container overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full responsive-data-table text-left border-collapse text-xs">
+                            <thead class="sticky top-0 bg-gray-100 border-b border-gray-200 text-gray-600 uppercase">
+                                <tr>
+                                    <th class="p-2.5">Date</th>
+                                    <th class="p-2.5">Entry No.</th>
+                                    <th class="p-2.5">Supplier Bill</th>
+                                    <th class="p-2.5">Distributor Name</th>
+                                    <th class="p-2.5 text-right">Taxable ₹</th>
+                                    <th class="p-2.5 text-right">GST ₹</th>
+                                    <th class="p-2.5 text-right">Total ₹</th>
+                                    <th class="p-2.5 text-right">Paid ₹</th>
+                                    <th class="p-2.5 text-right">Due ₹</th>
+                                    <th class="p-2.5 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-purchase-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Credit Notes Tab -->
+                <div id="rep-tab-cn" class="report-tab hidden flex-col h-full">
+                    <div class="flex justify-between items-center mb-3.5">
+                        <h2 class="text-base sm:text-lg font-extrabold text-gray-800">Sales Returns / Credit Notes</h2>
+                    </div>
+                    <div class="flex-1 table-scroll-container overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full responsive-data-table text-left border-collapse text-xs">
+                            <thead class="sticky top-0 bg-gray-100 border-b border-gray-200 text-gray-600 uppercase">
+                                <tr>
+                                    <th class="p-2.5">Date</th>
+                                    <th class="p-2.5">CN No.</th>
+                                    <th class="p-2.5">Orig. Invoice</th>
+                                    <th class="p-2.5">Customer Name</th>
+                                    <th class="p-2.5 text-right">Taxable ₹</th>
+                                    <th class="p-2.5 text-right">GST ₹</th>
+                                    <th class="p-2.5 text-right">Total Refund ₹</th>
+                                    <th class="p-2.5 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-cn-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Expiry Stock Report Tab -->
+                <div id="rep-tab-expiry" class="report-tab hidden flex-col h-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3.5 gap-2.5">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-extrabold text-red-600"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Batch Expiry & FEFO Stock Register</h2>
+                            <p class="text-xs text-gray-500">Highlights batches expiring within 30 / 60 / 90 days. Expired batches are blocked from POS sale billing.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <select id="rep-expiry-filter" onchange="app.reports.render()" class="flex-1 sm:flex-initial border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-semibold">
+                                <option value="ALL">All Batches (FEFO Sorted)</option>
+                                <option value="90">Expiring within 90 Days / Expired</option>
+                                <option value="60">Expiring within 60 Days / Expired</option>
+                                <option value="30">Expiring within 30 Days / Expired</option>
+                                <option value="EXPIRED">Strictly Expired Only</option>
+                            </select>
+                            <button type="button" onclick="app.backup.exportCsv('batches')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-md text-xs font-bold shrink-0"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 table-scroll-container overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full responsive-data-table text-left border-collapse text-xs">
+                            <thead class="sticky top-0 bg-red-50 border-b border-red-200 text-red-900 uppercase">
+                                <tr>
+                                    <th class="p-2.5">Medicine Name</th>
+                                    <th class="p-2.5">HSN / GST</th>
+                                    <th class="p-2.5">Batch No.</th>
+                                    <th class="p-2.5">Rack</th>
+                                    <th class="p-2.5">Mfg Date</th>
+                                    <th class="p-2.5">Expiry Date</th>
+                                    <th class="p-2.5 text-right">MRP ₹</th>
+                                    <th class="p-2.5 text-right">Avail. Stock</th>
+                                    <th class="p-2.5 text-center">FEFO Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-expiry-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Day Book & GST Summary Tab -->
+                <div id="rep-tab-daybook" class="report-tab hidden flex-col h-full">
+                    <div class="flex flex-wrap justify-between items-center mb-3.5 gap-2">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-extrabold text-gray-800">Centralized Day Book & Cash Flow Register</h2>
+                            <p class="text-xs text-gray-500">Real-time ledger of Sales, Purchases, Credit Notes, and Party Payment Receipts.</p>
+                        </div>
+                        <div class="flex gap-3 text-xs bg-slate-100 px-3 py-1.5 rounded-lg font-bold">
+                            <span class="text-emerald-700">Money In: <span id="daybook-total-in">₹0.00</span></span>
+                            <span>|</span>
+                            <span class="text-red-600">Money Out: <span id="daybook-total-out">₹0.00</span></span>
+                        </div>
+                    </div>
+                    <div class="flex-1 table-scroll-container overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full responsive-data-table text-left border-collapse text-xs">
+                            <thead class="sticky top-0 bg-gray-100 border-b border-gray-200 text-gray-600 uppercase">
+                                <tr>
+                                    <th class="p-2.5">Date</th>
+                                    <th class="p-2.5">Ref / Voucher No.</th>
+                                    <th class="p-2.5">Party / Particulars</th>
+                                    <th class="p-2.5">Transaction Type</th>
+                                    <th class="p-2.5">Payment Mode</th>
+                                    <th class="p-2.5 text-right text-emerald-700">Money In (₹)</th>
+                                    <th class="p-2.5 text-right text-red-600">Money Out (₹)</th>
+                                    <th class="p-2.5 text-center">Edit / View</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-daybook-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 6. PARTIES / FARMERS & LEDGER RECEIPT TEMPLATE -->
+    <template id="tpl-parties">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 min-h-full md:h-full flex flex-col md:flex-row overflow-hidden min-w-0">
+            <!-- Left Party List -->
+            <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col bg-slate-50 shrink-0 max-h-72 md:max-h-full">
+                <div class="p-3 border-b border-gray-200 space-y-2">
+                    <div class="flex space-x-2 items-center">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+                            <input type="text" id="party-search-input" oninput="app.parties.renderList()" class="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-300 rounded-md outline-none bg-white" placeholder="Search Farmer / Distributor...">
+                        </div>
+                        <button type="button" onclick="app.parties.openAddModal()" class="bg-primary hover:bg-primary-hover text-white px-2.5 py-1.5 rounded-md text-xs font-bold shadow-sm flex items-center shrink-0"><i class="fa-solid fa-plus mr-1"></i> Add</button>
+                    </div>
+                    <div class="flex gap-1 text-[11px]">
+                        <button type="button" onclick="app.parties.setFilter('ALL')" id="party-flt-ALL" class="flex-1 py-1 rounded bg-primary text-white font-bold">All</button>
+                        <button type="button" onclick="app.parties.setFilter('Customer')" id="party-flt-Customer" class="flex-1 py-1 rounded bg-white border border-gray-200 text-gray-600 font-semibold">Farmers/Cust</button>
+                        <button type="button" onclick="app.parties.setFilter('Supplier')" id="party-flt-Supplier" class="flex-1 py-1 rounded bg-white border border-gray-200 text-gray-600 font-semibold">Suppliers</button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto divide-y divide-gray-100" id="parties-list-container"></div>
+            </div>
+
+            <!-- Right Selected Party Details & Ledger History -->
+            <div class="flex-1 flex flex-col min-h-[380px] md:h-full overflow-hidden bg-white" id="party-detail-panel"></div>
+        </div>
+    </template>
+
+    <!-- 7. MEDICINES & BATCH INVENTORY TEMPLATE -->
+    <template id="tpl-items">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 min-h-full md:h-full flex flex-col md:flex-row overflow-hidden min-w-0">
+            <!-- Left Medicine List -->
+            <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col bg-slate-50 shrink-0 max-h-72 md:max-h-full">
+                <div class="p-3 border-b border-gray-200 flex space-x-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+                        <input type="text" id="item-search-input" oninput="app.items.renderList()" class="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-300 rounded-md outline-none bg-white" placeholder="Search Medicine, HSN, Rack...">
+                    </div>
+                    <button type="button" onclick="app.items.openAddModal()" class="bg-primary hover:bg-primary-hover text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm whitespace-nowrap shrink-0"><i class="fa-solid fa-plus mr-1"></i> Add Medicine</button>
+                </div>
+                <div class="flex justify-between px-3 py-1.5 text-[10px] font-bold text-gray-500 border-b border-gray-200 bg-gray-100 uppercase tracking-wide">
+                    <span>Medicine & HSN</span><span>Total Stock</span>
+                </div>
+                <div class="flex-1 overflow-y-auto divide-y divide-gray-100" id="items-list-container"></div>
+            </div>
+
+            <!-- Right Selected Medicine & Multi-Batch FEFO Table -->
+            <div class="flex-1 flex flex-col min-h-[380px] md:h-full overflow-hidden bg-white" id="item-detail-panel"></div>
+        </div>
+    </template>
+
+    <!-- 8. SETTINGS & DATA BACKUP TEMPLATE -->
+    <template id="tpl-settings">
+        <div class="max-w-5xl mx-auto space-y-5 sm:space-y-6 pb-10">
+            <!-- Store Profile & Drug License Config -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <div class="flex flex-wrap justify-between items-center border-b border-gray-100 pb-4 mb-5 gap-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-extrabold text-gray-800"><i class="fa-solid fa-store text-primary mr-2"></i> Pharmacy Profile, Drug License & Invoice Branding</h2>
+                        <p class="text-xs text-gray-500">Appears on all A5 Standard Invoices and 3-Inch Thermal Receipts.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <img id="settings-logo-preview" src="assets/logo_en.png" alt="Logo Preview" class="h-12 sm:h-14 w-auto object-contain border border-gray-200 rounded-lg p-1 bg-white">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[10px] font-bold uppercase text-gray-400">Active Invoice Logo</span>
+                            <div class="inline-flex rounded-md border border-gray-300 p-0.5 bg-gray-50">
+                                <button type="button" onclick="app.setLogoLang('en')" id="set-lang-en" class="px-2.5 py-1 text-xs font-bold rounded bg-primary text-white">English Logo</button>
+                                <button type="button" onclick="app.setLogoLang('hi')" id="set-lang-hi" class="px-2.5 py-1 text-xs font-bold rounded text-gray-700">हिन्दी Logo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Pharmacy / Store Name</label>
+                        <input type="text" id="cfg-store-name" class="w-full border border-gray-300 rounded-lg px-3 py-2 font-semibold focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Hindi Subtitle / Tagline</label>
+                        <input type="text" id="cfg-store-tagline" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Store Phone / WhatsApp</label>
+                        <input type="text" id="cfg-store-phone" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">GSTIN Number</label>
+                        <input type="text" id="cfg-store-gstin" class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono uppercase focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Drug License No. (Form 20B)</label>
+                        <input type="text" id="cfg-dl-20b" class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Drug License No. (Form 21B)</label>
+                        <input type="text" id="cfg-dl-21b" class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono focus:border-primary outline-none">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Full Store Address</label>
+                        <input type="text" id="cfg-store-address" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Default Reg. Veterinarian / Doctor</label>
+                        <input type="text" id="cfg-default-doctor" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none">
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                    <button type="button" onclick="app.settings.save()" class="w-full sm:w-auto bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-xs font-extrabold shadow-sm transition">
+                        <i class="fa-solid fa-floppy-disk mr-1.5"></i> Save Store Configuration
+                    </button>
+                </div>
+            </div>
+
+            <!-- Database Backup, Restore & SQL Migration Center -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h3 class="text-base font-extrabold text-gray-800 mb-1"><i class="fa-solid fa-database text-amber-600 mr-2"></i> Centralized Data Backup, Restore & SQL Export</h3>
+                <p class="text-xs text-gray-500 mb-4">Protect your accounting, inventory batches, and customer ledgers with instant local & system backups.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="border border-teal-200 bg-teal-50/40 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-extrabold text-teal-900 uppercase block mb-1"><i class="fa-solid fa-download mr-1"></i> Full Database Backup (.JSON)</span>
+                            <p class="text-xs text-gray-600 mb-3">Download complete snapshot of Medicines, Batches, Parties, Sales, Purchases, Credit Notes, and Ledgers.</p>
+                        </div>
+                        <button type="button" onclick="app.backup.downloadJson()" class="w-full bg-primary hover:bg-primary-hover text-white py-2 rounded-lg text-xs font-bold shadow-sm transition">Download Full Backup (.JSON)</button>
+                    </div>
+                    <div class="border border-indigo-200 bg-indigo-50/40 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-extrabold text-indigo-900 uppercase block mb-1"><i class="fa-solid fa-server mr-1"></i> SQL Migration Dump (.SQL)</span>
+                            <p class="text-xs text-gray-600 mb-3">Export ACID-compliant SQL INSERT statements with separate taxable, GST, grand total, received & due columns.</p>
+                        </div>
+                        <button type="button" onclick="app.backup.downloadSqlDump()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-bold shadow-sm transition">Export SQL Database (.SQL)</button>
+                    </div>
+                    <div class="border border-amber-200 bg-amber-50/40 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-extrabold text-amber-900 uppercase block mb-1"><i class="fa-solid fa-upload mr-1"></i> Restore from Backup File</span>
+                            <p class="text-xs text-gray-600 mb-3">Select any previously downloaded <code class="font-mono">.json</code> backup file to restore all store data immediately.</p>
+                        </div>
+                        <label class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-xs font-bold shadow-sm transition text-center cursor-pointer block">
+                            <i class="fa-solid fa-file-import mr-1"></i> Choose Backup File (.JSON)
+                            <input type="file" accept=".json" onchange="app.backup.importJsonFile(this)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ===================================================================== -->
+    <!-- MODALS CONTAINER                                                      -->
+    <!-- ===================================================================== -->
+    <div id="modals" class="hidden fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4">
+        <div id="modal-backdrop" class="absolute inset-0 bg-slate-900 bg-opacity-50 backdrop-blur-sm transition-opacity hidden no-print" onclick="app.modals.closeTop()"></div>
+        
+        <!-- 1. Add / Edit Party Modal -->
+        <div id="modal-add-party" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[92dvh] flex-col relative z-[51] modal-enter overflow-hidden no-print">
+            <div class="bg-slate-50 p-3.5 sm:p-4 flex justify-between items-center border-b border-gray-200 shrink-0">
+                <h3 class="font-extrabold text-gray-800 text-sm sm:text-base" id="modal-party-title"><i class="fa-solid fa-user-plus text-primary mr-1.5"></i> Add / Edit Party</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-700 transition p-1" onclick="app.modals.close('modal-add-party')"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4 text-xs overflow-y-auto flex-1">
+                <input type="hidden" id="form-party-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Party / Farmer Name *</label>
+                        <input type="text" id="form-party-name" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none font-semibold" placeholder="e.g. Ram Kumar Yadav">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Phone / Mobile Number</label>
+                        <input type="text" id="form-party-phone" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none" placeholder="10-digit Mobile No.">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Party Type</label>
+                        <select id="form-party-type" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none bg-white font-semibold">
+                            <option value="Customer">Farmer / Customer (Receivable)</option>
+                            <option value="Supplier">Supplier / Distributor (Payable)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Opening / Current Due Balance (₹)</label>
+                        <input type="number" step="0.01" id="form-party-balance" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none font-bold" placeholder="0.00" value="0">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">GSTIN (Optional)</label>
+                        <input type="text" id="form-party-gstin" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none uppercase font-mono" placeholder="GSTIN">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Drug License No. (Optional)</label>
+                        <input type="text" id="form-party-dl" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none font-mono" placeholder="D.L. No.">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-600 uppercase mb-1">Village / Billing Address</label>
+                    <input type="text" id="form-party-address" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-primary outline-none" placeholder="Village Gaway, Post & Dist details">
+                </div>
+            </div>
+            <div class="bg-gray-50 p-3.5 sm:p-4 border-t border-gray-200 flex justify-end space-x-3 shrink-0">
+                <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 text-xs" onclick="app.modals.close('modal-add-party')">Cancel</button>
+                <button type="button" class="px-5 py-2 bg-primary text-white rounded-lg font-extrabold hover:bg-primary-hover shadow-sm text-xs" onclick="app.parties.saveFromModal()">Save Party</button>
+            </div>
+        </div>
+
+        <!-- 2. Add / Edit Medicine & Batch Modal (GST 2.0 Categories 1-5) -->
+        <div id="modal-add-item" class="hidden fixed inset-0 z-[55] bg-gray-50 flex-col modal-enter overflow-hidden no-print">
+            <div class="bg-white h-14 flex items-center justify-between px-4 sm:px-6 border-b border-gray-200 shadow-sm shrink-0">
+                <h2 class="text-sm sm:text-base font-extrabold text-gray-800 truncate pr-2" id="modal-item-title"><i class="fa-solid fa-capsules text-primary mr-2"></i> Add / Edit Medicine & Batch Inventory (GST 2.0)</h2>
+                <button type="button" class="hover:text-red-600 text-gray-400 text-xl transition p-1" onclick="app.modals.close('modal-add-item')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-3 sm:p-6">
+                <input type="hidden" id="form-item-id">
+                <input type="hidden" id="form-batch-id">
+                <div class="max-w-4xl mx-auto space-y-4 sm:space-y-5 text-xs">
+                    <!-- GST 2.0 Category & Medicine Master Info -->
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">
+                        <h3 class="font-extrabold text-gray-800 border-b border-gray-100 pb-2 uppercase text-xs flex flex-wrap items-center justify-between gap-1">
+                            <span>1. Medicine Master & GST 2.0 Classification</span>
+                            <span class="text-[11px] text-teal-700 font-semibold">Auto-maps HSN & GST Rate</span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Medicine / Item Name *</label>
+                                <input type="text" id="form-item-name" class="w-full border border-gray-300 rounded-md px-3 py-2 font-semibold focus:border-primary outline-none" placeholder="e.g. Oxytetracycline LA Inj 100ml">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Brand / Manufacturer</label>
+                                <input type="text" id="form-item-brand" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-primary outline-none" placeholder="e.g. Intas / Zydus Vet">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-gray-600 uppercase mb-1">GST 2.0 Pharmacy Category *</label>
+                                <select id="form-item-category" onchange="app.items.onCategoryChange()" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-primary outline-none bg-white font-semibold">
+                                    <option value="CAT1" data-hsn="3004" data-gst="5">Cat 1: Life-Saving Drugs, Insulin, Vaccines & Biologicals (HSN 3004/3002) — 5% GST</option>
+                                    <option value="CAT2" data-hsn="3004" data-gst="12" selected>Cat 2: General Formulations, Bolus, Antibiotics, Injections & Syrups (HSN 3004) — 12% GST</option>
+                                    <option value="CAT3" data-hsn="9018" data-gst="12">Cat 3: Medical/Vet Devices, Diagnostic Kits, Surgical & Thermometers (HSN 9018) — 12% GST</option>
+                                    <option value="CAT4" data-hsn="2106" data-gst="18">Cat 4: Feed Supplements, Minerals, Personal/Animal Care & Cosmetics (HSN 2106) — 18% GST</option>
+                                    <option value="CAT5" data-hsn="9993" data-gst="0">Cat 5: Veterinary Consultation, Lab Tests & Health Services (SAC 9993) — 0% Exempt</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block font-bold text-gray-600 uppercase mb-1">HSN / SAC</label>
+                                    <input type="text" id="form-item-hsn" value="3004" class="w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:border-primary outline-none">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-gray-600 uppercase mb-1">GST Rate (%)</label>
+                                    <select id="form-item-gst" class="w-full border border-gray-300 rounded-md px-2 py-2 font-bold text-teal-700 bg-teal-50 outline-none">
+                                        <option value="0">0% (Exempt)</option>
+                                        <option value="5">5% (2.5+2.5)</option>
+                                        <option value="12" selected>12% (6+6)</option>
+                                        <option value="18">18% (9+9)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Drug Schedule Tag</label>
+                                <select id="form-item-schedule" class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white outline-none font-semibold">
+                                    <option value="Vet-Rx">Schedule H / Vet-Rx</option>
+                                    <option value="H1">Schedule H1 (Restricted)</option>
+                                    <option value="X">Schedule X</option>
+                                    <option value="OTC">OTC / Feed Supplement</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Unit & Packing Size</label>
+                                <div class="flex gap-1.5">
+                                    <select id="form-item-unit" class="w-1/2 border border-gray-300 rounded-md px-2 py-2 bg-white outline-none font-semibold">
+                                        <option value="VIAL">VIAL</option>
+                                        <option value="BTL">BTL</option>
+                                        <option value="PCS">PCS</option>
+                                        <option value="STRIP">STRIP</option>
+                                        <option value="PKT">PKT</option>
+                                        <option value="BOX">BOX</option>
+                                    </select>
+                                    <input type="text" id="form-item-pack" class="w-1/2 border border-gray-300 rounded-md px-2 py-2 outline-none" placeholder="e.g. 100ml">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Rack / Shelf Location</label>
+                                <input type="text" id="form-item-rack" value="Rack A-1" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none" placeholder="e.g. Rack A-2 / Fridge-1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch, Expiry & Tax-Inclusive MRP Section -->
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">
+                        <h3 class="font-extrabold text-gray-800 border-b border-gray-100 pb-2 uppercase text-xs flex items-center">
+                            <i class="fa-solid fa-barcode text-primary mr-2"></i> 2. Batch Inventory, Expiry Date (FEFO) & Tax-Inclusive MRP
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Batch Number *</label>
+                                <input type="text" id="form-item-batch" class="w-full border border-gray-300 rounded-md px-3 py-2 font-mono uppercase font-bold focus:border-primary outline-none" placeholder="e.g. OXY-902">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Manufacture Date (MFG)</label>
+                                <input type="date" id="form-item-mfg" class="w-full border border-gray-300 rounded-md px-3 py-2 font-medium focus:border-primary outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-red-600 uppercase mb-1">Expiry Date (EXP) *</label>
+                                <input type="date" id="form-item-exp" class="w-full border border-red-300 bg-red-50/30 rounded-md px-3 py-2 font-bold text-red-700 focus:border-primary outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-teal-800 uppercase mb-1">Retail Sale Price (MRP ₹ Incl. GST) *</label>
+                                <input type="number" step="0.01" id="form-item-mrp" oninput="app.items.previewBackwardTax()" class="w-full border-2 border-teal-500 rounded-md px-3 py-2 font-extrabold text-sm focus:border-primary outline-none" placeholder="0.00">
+                                <p class="text-[10px] text-teal-700 mt-1 font-medium" id="form-item-tax-preview">Taxable Base: ₹0.00 + GST: ₹0.00</p>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Purchase Rate (PTR ₹)</label>
+                                <input type="number" step="0.01" id="form-item-ptr" class="w-full border border-gray-300 rounded-md px-3 py-2 font-semibold focus:border-primary outline-none" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 uppercase mb-1">Available Batch Stock Qty *</label>
+                                <input type="number" step="1" id="form-item-qty" class="w-full border border-gray-300 rounded-md px-3 py-2 font-extrabold text-sm focus:border-primary outline-none" placeholder="0" value="20">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 sm:p-4 border-t border-gray-200 flex justify-end space-x-3 shadow-lg shrink-0 z-10">
+                <button type="button" class="px-4 sm:px-5 py-2 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-100 text-xs" onclick="app.modals.close('modal-add-item')">Cancel</button>
+                <button type="button" class="px-5 sm:px-6 py-2 bg-primary text-white rounded-lg font-extrabold hover:bg-primary-hover shadow-md text-xs" onclick="app.items.saveFromModal()"><i class="fa-solid fa-check mr-1.5"></i> Save Medicine & Batch</button>
+            </div>
+        </div>
+
+        <!-- 3. Record Party Payment / Receipt Modal -->
+        <div id="modal-record-payment" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[92dvh] flex-col relative z-[52] modal-enter overflow-hidden no-print">
+            <div class="bg-teal-900 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-extrabold text-sm"><i class="fa-solid fa-money-bill-transfer mr-1.5"></i> Record Party Payment / Ledger Receipt</h3>
+                <button type="button" class="text-teal-200 hover:text-white p-1" onclick="app.modals.close('modal-record-payment')"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-4 sm:p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+                <input type="hidden" id="pay-party-id">
+                <div class="bg-slate-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] uppercase text-gray-400 font-bold block">Selected Party</span>
+                        <span class="font-extrabold text-gray-800 text-sm" id="pay-party-name">-</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] uppercase text-gray-400 font-bold block">Current Ledger Due</span>
+                        <span class="font-extrabold text-red-600 text-sm" id="pay-party-cur-bal">₹ 0.00</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Voucher Type</label>
+                        <select id="pay-tx-type" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 font-bold bg-white">
+                            <option value="RECEIPT">Payment Received (Money In)</option>
+                            <option value="PAYMENT">Payment Made (Money Out)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Date</label>
+                        <input type="date" id="pay-tx-date" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 font-medium current-date-init">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Amount (₹) *</label>
+                        <input type="number" step="0.01" id="pay-tx-amount" class="w-full border-2 border-primary rounded-lg px-3 py-2 font-extrabold text-sm" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-600 uppercase mb-1">Payment Mode</label>
+                        <select id="pay-tx-mode" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 font-semibold bg-white">
+                            <option value="Cash">Cash</option>
+                            <option value="UPI / QR Code">UPI / QR Code</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-600 uppercase mb-1">Remarks / Reference Note</label>
+                    <input type="text" id="pay-tx-notes" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g. Partial credit settlement">
+                </div>
+            </div>
+            <div class="bg-gray-50 p-3.5 sm:p-4 border-t border-gray-200 flex justify-end space-x-2 shrink-0">
+                <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold text-xs" onclick="app.modals.close('modal-record-payment')">Cancel</button>
+                <button type="button" class="px-5 py-2 bg-primary text-white rounded-lg font-extrabold hover:bg-primary-hover text-xs shadow-sm" onclick="app.parties.savePaymentReceipt()"><i class="fa-solid fa-check mr-1"></i> Save Receipt & Update Ledger</button>
+            </div>
+        </div>
+
+        <!-- 4. Print-Ready A5 & 3-Inch Thermal Invoice Preview Modal -->
+        <div id="modal-invoice-preview" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[92dvh] flex-col relative z-[53] modal-enter overflow-hidden">
+            <div class="bg-slate-800 text-white px-3.5 sm:px-5 py-3 flex flex-wrap justify-between items-center gap-2 no-print shrink-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-extrabold text-xs sm:text-sm"><i class="fa-solid fa-print text-teal-400 mr-1.5"></i> Invoice Preview</span>
+                    <div class="inline-flex rounded-lg bg-slate-700 p-0.5">
+                        <button type="button" onclick="app.invoicePrint.setFormat('A5')" id="btn-fmt-a5" class="px-2.5 sm:px-3 py-1 rounded-md text-xs font-bold bg-primary text-white">A5 Standard</button>
+                        <button type="button" onclick="app.invoicePrint.setFormat('THERMAL')" id="btn-fmt-thermal" class="px-2.5 sm:px-3 py-1 rounded-md text-xs font-bold text-slate-300 hover:text-white">3" Thermal (80mm)</button>
+                    </div>
+                    <button type="button" onclick="app.toggleLogoLang()" class="px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-amber-300">
+                        <i class="fa-solid fa-language mr-1"></i> EN/हिं Logo
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.print()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 sm:px-4 py-1.5 rounded-lg text-xs font-extrabold shadow-sm transition">
+                        <i class="fa-solid fa-print mr-1"></i> Print Now
+                    </button>
+                    <button type="button" onclick="app.modals.close('modal-invoice-preview')" class="text-slate-300 hover:text-white px-2 text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto p-3 sm:p-6 bg-gray-100 flex justify-start sm:justify-center">
+                <div id="invoice-print-area" class="bg-white shadow-md border border-gray-300 w-full max-w-[210mm] p-4 sm:p-6 text-gray-900 mx-auto"></div>
+            </div>
+        </div>
+
+        <!-- 5. Backup & Data Center Modal -->
+        <div id="modal-backup-center" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[92dvh] flex-col relative z-[54] modal-enter overflow-hidden no-print">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-extrabold text-xs sm:text-sm"><i class="fa-solid fa-shield-halved text-amber-400 mr-2"></i> Complete Data Backup, Restore & Export Center</h3>
+                <button type="button" class="text-slate-400 hover:text-white p-1" onclick="app.modals.close('modal-backup-center')"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4 text-xs overflow-y-auto flex-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button type="button" onclick="app.backup.downloadJson()" class="p-3.5 rounded-xl border-2 border-teal-500 bg-teal-50/60 hover:bg-teal-100/70 text-left transition flex items-start gap-3">
+                        <i class="fa-solid fa-file-arrow-down text-2xl text-primary mt-0.5"></i>
+                        <div>
+                            <span class="font-extrabold text-gray-800 block text-sm">1-Click Full Backup (.JSON)</span>
+                            <span class="text-gray-600 text-[11px]">Downloads complete ACID database snapshot for safe keeping.</span>
+                        </div>
+                    </button>
+                    <button type="button" onclick="app.backup.downloadSqlDump()" class="p-3.5 rounded-xl border-2 border-indigo-400 bg-indigo-50/60 hover:bg-indigo-100/70 text-left transition flex items-start gap-3">
+                        <i class="fa-solid fa-database text-2xl text-indigo-600 mt-0.5"></i>
+                        <div>
+                            <span class="font-extrabold text-gray-800 block text-sm">Export SQL Schema + Data (.SQL)</span>
+                            <span class="text-gray-600 text-[11px]">Ready for SQLite / SQL Server migration with GST 2.0 columns.</span>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-4 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <span class="font-extrabold text-gray-800 block">Restore Database from Backup File (.JSON)</span>
+                        <span class="text-gray-500 text-[11px]">Restores all medicines, batches, parties, invoices, and ledgers immediately.</span>
+                    </div>
+                    <label class="w-full sm:w-auto text-center bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-extrabold cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-upload mr-1"></i> Upload & Restore .JSON
+                        <input type="file" accept=".json" onchange="app.backup.importJsonFile(this)" class="hidden">
+                    </label>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-4">
+                    <span class="font-extrabold text-gray-700 uppercase text-[11px] block mb-2">Export Individual Registers to CSV / Excel</span>
+                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                        <button type="button" onclick="app.backup.exportCsv('sales')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md font-bold text-center"><i class="fa-solid fa-file-csv mr-1"></i> Sales.csv</button>
+                        <button type="button" onclick="app.backup.exportCsv('purchases')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md font-bold text-center"><i class="fa-solid fa-file-csv mr-1"></i> Purchases.csv</button>
+                        <button type="button" onclick="app.backup.exportCsv('batches')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md font-bold text-center"><i class="fa-solid fa-file-csv mr-1"></i> Batches.csv</button>
+                        <button type="button" onclick="app.backup.exportCsv('parties')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md font-bold text-center"><i class="fa-solid fa-file-csv mr-1"></i> Parties.csv</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-gray-200">
+                    <button type="button" onclick="app.backup.resetDemoData()" class="text-red-600 hover:underline font-semibold text-xs"><i class="fa-solid fa-rotate mr-1"></i> Reset to Default Veterinary Demo Data</button>
+                    <button type="button" onclick="app.modals.close('modal-backup-center')" class="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-bold">Done</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Custom In-Page Confirmation Modal -->
+        <div id="modal-confirm" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-sm flex-col relative z-[60] modal-enter overflow-hidden no-print">
+            <div class="p-5 text-center space-y-3">
+                <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto text-xl"><i class="fa-solid fa-circle-question"></i></div>
+                <h4 class="font-extrabold text-gray-800 text-base" id="confirm-modal-title">Confirm Action</h4>
+                <p class="text-xs text-gray-600" id="confirm-modal-msg">Are you sure you want to proceed?</p>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="app.modals.close('modal-confirm')" class="px-4 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100">Cancel</button>
+                <button type="button" id="confirm-modal-yes-btn" class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-extrabold">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- COMPLETE APPLICATION LOGIC (CRUD, GST 2.0, FEFO, EDIT & DATA BACKUP)  -->
+    <!-- ===================================================================== -->
+    <script src="js/app.js" defer></script>
+</body>
+</html>
